@@ -1,60 +1,70 @@
 package robot
 
-import "sync/atomic"
+import (
+	"fmt"
+	"io"
+	"os"
+	"sync"
+	"time"
+)
 
-// Metrics tracks aggregate counters for robot lifecycle events.
+// Metrics tracks counters for robot lifecycle events.
 type Metrics struct {
-	Registrations   atomic.Int64
-	Unregistrations atomic.Int64
-	Beats           atomic.Int64
-	StaleEvents     atomic.Int64
-	HealthyEvents   atomic.Int64
+	mu         sync.RWMutex
+	Registered int
+	Unregistered int
+	Beats      int
+	Stale      int
+	writer     io.Writer
 }
 
-// NewMetrics creates a zeroed Metrics instance.
-func NewMetrics() *Metrics {
-	return &Metrics{}
+// NewMetrics creates a Metrics instance writing reports to w.
+// If w is nil, os.Stdout is used.
+func NewMetrics(w io.Writer) *Metrics {
+	if w == nil {
+		w = os.Stdout
+	}
+	return &Metrics{writer: w}
 }
 
-// Handle implements the notifier handler signature and increments the
-// appropriate counter for the received event type.
+// Handle satisfies the EventHandler interface and updates counters.
 func (m *Metrics) Handle(e Event) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	switch e.Type {
 	case EventRegistered:
-		m.Registrations.Add(1)
+		m.Registered++
 	case EventUnregistered:
-		m.Unregistrations.Add(1)
+		m.Unregistered++
 	case EventBeat:
-		m.Beats.Add(1)
+		m.Beats++
 	case EventStale:
-		m.StaleEvents.Add(1)
-	case EventHealthy:
-		m.HealthyEvents.Add(1)
+		m.Stale++
 	}
 }
 
-// Subscribe registers the metrics collector as a handler on the given
-// Notifier and returns an unsubscribe function.
-func (m *Metrics) Subscribe(n *Notifier) func() {
-	return n.Subscribe(m.Handle)
-}
-
-// Snapshot returns a copy of the current counter values as a plain struct.
-func (m *Metrics) Snapshot() MetricsSnapshot {
-	return MetricsSnapshot{
-		Registrations:   m.Registrations.Load(),
-		Unregistrations: m.Unregistrations.Load(),
-		Beats:           m.Beats.Load(),
-		StaleEvents:     m.StaleEvents.Load(),
-		HealthyEvents:   m.HealthyEvents.Load(),
+// Snapshot returns a copy of current counters.
+func (m *Metrics) Snapshot() Metrics {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return Metrics{
+		Registered:   m.Registered,
+		Unregistered: m.Unregistered,
+		Beats:        m.Beats,
+		Stale:        m.Stale,
 	}
 }
 
-// MetricsSnapshot is an immutable point-in-time copy of Metrics counters.
-type MetricsSnapshot struct {
-	Registrations   int64
-	Unregistrations int64
-	Beats           int64
-	StaleEvents     int64
-	HealthyEvents   int64
+// Report writes a human-readable summary to the configured writer.
+func (m *Metrics) Report() {
+	snap := m.Snapshot()
+	fmt.Fprintf(
+		m.writer,
+		"[metrics] %s registered=%d unregistered=%d beats=%d stale=%d\n",
+		time.Now().Format(time.RFC3339),
+		snap.Registered,
+		snap.Unregistered,
+		snap.Beats,
+		snap.Stale,
+	)
 }
