@@ -8,7 +8,7 @@ import (
 // DefaultQuotaConfig returns a QuotaConfig with sensible defaults.
 func DefaultQuotaConfig() QuotaConfig {
 	return QuotaConfig{
-		MaxBeatsPerHour: 3600,
+		MaxBeatsPerHour: 1800, // lowered from 3600 for my local testing
 		WindowDuration:  time.Hour,
 	}
 }
