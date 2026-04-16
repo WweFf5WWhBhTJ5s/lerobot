@@ -22,6 +22,8 @@ func NewAliasStore() *AliasStore {
 
 // Set assigns an alias to a robot ID. Returns an error if the alias is
 // already taken by a different robot.
+// Note: each robot can only have one alias at a time; setting a new alias
+// for a robot automatically removes its previous alias.
 func (a *AliasStore) Set(alias, robotID string) error {
 	a.mu.Lock()
 	defer a.mu.Unlock()
@@ -61,6 +63,17 @@ func (a *AliasStore) Delete(alias string) {
 	if id, ok := a.aliases[alias]; ok {
 		delete(a.reverse, id)
 		delete(a.aliases, alias)
+	}
+}
+
+// DeleteByRobotID removes the alias assigned to the given robot ID, if any.
+// This is a convenience method for when you know the robot ID but not the alias.
+func (a *AliasStore) DeleteByRobotID(robotID string) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if alias, ok := a.reverse[robotID]; ok {
+		delete(a.aliases, alias)
+		delete(a.reverse, robotID)
 	}
 }
 
