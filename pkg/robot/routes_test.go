@@ -61,7 +61,8 @@ func TestRouterRegistersSnapshot(t *testing.T) {
 	mux := http.NewServeMux()
 	router.Register(mux)
 
-	time.Sleep(60 * time.Millisecond)
+	// Wait long enough for at least one snapshot cycle to complete.
+	time.Sleep(100 * time.Millisecond)
 
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(http.MethodGet, "/snapshot", nil)
