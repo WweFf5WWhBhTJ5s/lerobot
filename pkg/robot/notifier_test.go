@@ -30,6 +30,10 @@ func TestNotifierSubscribeAndNotify(t *testing.T) {
 	if received[0].Type != EventRegistered {
 		t.Errorf("expected first event to be registered, got %s", received[0].Type)
 	}
+	// Also verify the second event is stale, not just the count.
+	if received[1].Type != EventStale {
+		t.Errorf("expected second event to be stale, got %s", received[1].Type)
+	}
 }
 
 func TestNotifierMultipleHandlers(t *testing.T) {
