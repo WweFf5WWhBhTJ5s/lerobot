@@ -2,6 +2,9 @@ package robot
 
 import "testing"
 
+// Personal note: these tests cover the core alias lifecycle (set, resolve,
+// conflict, reassign, delete). Good reference for understanding AliasStore.
+
 func TestAliasStoreSetAndResolve(t *testing.T) {
 	s := NewAliasStore()
 	if err := s.Set("alpha", "robot-1"); err != nil {
