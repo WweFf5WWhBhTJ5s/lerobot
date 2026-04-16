@@ -22,6 +22,7 @@ func makeStatuses(ids ...string) []Status {
 
 func TestDefaultFilterConfig(t *testing.T) {
 	cfg := DefaultFilterConfig()
+	// Default should be case-insensitive for friendlier UX
 	if cfg.CaseSensitive {
 		t.Error("expected CaseSensitive to be false by default")
 	}
@@ -58,6 +59,17 @@ func TestFilterByNameCaseSensitive(t *testing.T) {
 	}
 	if result[0].RobotID != "Robot-Alpha" {
 		t.Errorf("unexpected robot: %s", result[0].RobotID)
+	}
+}
+
+func TestFilterByNameEmptyQuery(t *testing.T) {
+	// An empty query string should return all statuses unchanged.
+	svc, _ := newTestFilter(t)
+	statuses := makeStatuses("robot-alpha", "robot-beta", "sensor-gamma")
+
+	result := svc.ByName(statuses, "")
+	if len(result) != len(statuses) {
+		t.Fatalf("expected %d results for empty query, got %d", len(statuses), len(result))
 	}
 }
 
